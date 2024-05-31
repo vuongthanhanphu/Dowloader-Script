@@ -13,33 +13,40 @@ def download(url, name):
     start_time = time.time()
     
     # Get url
-    r = requests.get(url)
-    print(f'Loaded url {name}')
-    playlist = m3u8.loads(r.text)
+    r = requests.get(url.strip())
+    if r.status_code == 200:
+        
+        print(f'Loaded url {name}')
+        playlist = m3u8.loads(r.text)
+        
+        # Download
+        j = 0
+        with open(f"{name}.ts", 'wb') as f:
+            for segment in playlist.data['segments']:
+                try:
+                    uri = url[:url.rfind('/')] + '/' + segment['uri']
+                    r = requests.get(uri)
+                    f.write(r.content)
 
-    # Download
-    j = 0
-    with open(f"{name}.ts", 'wb') as f:
-        for segment in playlist.data['segments']:
-            try:
-                uri = url.replace('mixed.m3u8', '') + segment['uri']
-                r = requests.get(uri)
-                f.write(r.content)
-
-                # Downloaded status
-                message = f"{name} downloaded: " + str(j) + "/" + str(len(playlist.data['segments']))
-                sys.stdout.write("\r" + message)
-                sys.stdout.flush()
-                j += 1
-                
-            except Exception as e:
-                #print("Wrong " + uri)
-                continue
+                    # Downloaded status
+                    message = f"{name} downloaded: " + str(j) + "/" + str(len(playlist.data['segments']))
+                    sys.stdout.write("\r" + message)
+                    sys.stdout.flush()
+                    j += 1
+                    
+                except Exception as e:
+                    # print("Wrong " + uri)
+                    continue
     
-    # End Timer
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    print(f" Done {name}: {elapsed_time:.2f} seconds")
+        # End Timer
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"Done {name}: {elapsed_time:.2f} seconds")
+    
+    else:
+        print(f'Cannot load url {name}')
+        print(r)
+        print(url)
 
 # main
 def main():
